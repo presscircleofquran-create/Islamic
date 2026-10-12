@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#04130F">
+<title>লগইন</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@400;600;700&family=Amiri+Quran&family=Tiro+Bangla:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/islamic.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body class="p-body">
+<div class="p-login"><div class="p-lbox">
+  <div class="p-lhead"><span class="logo"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="4"><rect x="19" y="19" width="62" height="62" rx="3"/><rect x="19" y="19" width="62" height="62" rx="3" transform="rotate(45 50 50)"/><circle cx="50" cy="50" r="9"/></svg></span>
+    <h1 id="lTitle">স্বাগতম</h1><p id="lSub">চালিয়ে যেতে লগইন করুন</p></div>
+  <div class="p-tabs" role="tablist"><button type="button" class="on" id="tLogin" role="tab">লগইন</button><button type="button" id="tSign" role="tab">নতুন অ্যাকাউন্ট</button></div>
+  <form id="form" novalidate>
+    <div class="p-field" id="fName" hidden><span id="icU"></span><input id="name" placeholder="আপনার নাম" autocomplete="name" maxlength="40"></div>
+    <div class="p-field"><span id="icM"></span><input id="email" type="email" placeholder="ইমেইল" autocomplete="email" required></div>
+    <div class="p-field"><span id="icL"></span><input id="pass" type="password" placeholder="পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)" autocomplete="current-password" required><button type="button" class="eye" id="eye" aria-label="পাসওয়ার্ড দেখান"></button></div>
+    <p class="p-err" id="err" role="alert"></p>
+    <button class="p-submit" id="go" type="submit">লগইন</button>
+  </form>
+</div></div>
+<script type="module">
+import { signIn, signUp, isLoggedIn, ICON, mountBg } from "./assets/app.js";
+mountBg('login');
+const $ = (id) => document.getElementById(id);
+$('icU').outerHTML = ICON.user; $('icM').outerHTML = ICON.mail; $('icL').outerHTML = ICON.lock; $('eye').innerHTML = ICON.eye;
+const next = (() => { const n = new URLSearchParams(location.search).get('next') || 'index.html'; return /^[\w.\-]+\.html(\?[\w=&%.\-]*)?$/.test(n) ? n : 'index.html'; })();
+if (isLoggedIn()) location.replace(next);
+let mode = 'login';
+const MSG = { 'email-exists': 'এই ইমেইলে আগেই অ্যাকাউন্ট আছে — লগইন করুন', 'no-user': 'এই ইমেইলে কোনো অ্যাকাউন্ট নেই', 'bad-pass': 'পাসওয়ার্ড ভুল',
+  'no-crypto': 'নিরাপদ (https) লিংকে সাইটটি খুলুন', 'unavailable': 'ইন্টারনেট সংযোগ চেক করুন', 'permission-denied': 'Firestore Rules এ অনুমতি নেই — Rules চেক করুন' };
+const say = (t) => { $('err').textContent = t || ''; };
+function setMode(m) {
+  mode = m; const s = m === 'sign';
+  $('tLogin').classList.toggle('on', !s); $('tSign').classList.toggle('on', s);
+  $('fName').hidden = !s; $('go').textContent = s ? 'অ্যাকাউন্ট তৈরি করুন' : 'লগইন';
+  $('lTitle').textContent = s ? 'নতুন অ্যাকাউন্ট' : 'স্বাগতম'; $('lSub').textContent = s ? 'কয়েক সেকেন্ডেই শুরু করুন' : 'চালিয়ে যেতে লগইন করুন';
+  $('pass').autocomplete = s ? 'new-password' : 'current-password'; say('');
+}
+$('tLogin').onclick = () => setMode('login'); $('tSign').onclick = () => setMode('sign');
+let shown = false;
+$('eye').onclick = () => { shown = !shown; $('pass').type = shown ? 'text' : 'password'; $('eye').innerHTML = shown ? ICON.eyeoff : ICON.eye; };
+$('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('email').value.trim(), pass = $('pass').value, name = $('name').value.trim();
+  if (!/^\S+@\S+\.\S+$/.test(email)) { say('সঠিক ইমেইল দিন'); return; }
+  if (pass.length < 6) { say('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের দিন'); return; }
+  if (mode === 'sign' && !name) { say('আপনার নাম লিখুন'); return; }
+  $('go').disabled = true; say('');
+  try { if (mode === 'login') await signIn(email, pass); else await signUp({ name, email, pass }); location.replace(next); }
+  catch (er) { console.error(er); say(MSG[er.code] || ('ত্রুটি: ' + (er.code || er.message))); $('go').disabled = false; }
+});
+</script>
+</body>
+</html>
